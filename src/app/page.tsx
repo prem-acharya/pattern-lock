@@ -15,6 +15,7 @@ import { ModeToggle } from "@/components/theme-toggle";
 import Link from "next/link";
 import { useMDXComponent } from "next-contentlayer/hooks";
 import { CodeBlock } from "@/components/code-block";
+import { mdxComponents } from "@/components/mdx-components";
 
 export default function Home() {
   const [currentPattern, setCurrentPattern] = React.useState<number[]>([]);
@@ -42,7 +43,7 @@ export default function Home() {
 
   // Custom MDX components mapping
   const components = {
-    pre: (props: any) => <div {...props} />, // Prevent double wrapping
+    ...mdxComponents,
     code: (props: any) => {
       const { className = "", children = "" } = props;
       const match = className.match(/language-(\w+)/);
@@ -65,7 +66,7 @@ export default function Home() {
         <div className="text-center space-y-2 relative">
           <div className="absolute right-0 top-0 flex gap-2 items-center">
             <Link
-              href="https://github.com/your-username/your-repo"
+              href="https://github.com/prem-acharya/pattern-lock"
               target="_blank"
               className="text-sm font-medium hover:underline underline-offset-4"
               aria-label="View on GitHub"
@@ -75,9 +76,12 @@ export default function Home() {
             <ModeToggle />
           </div>
           <h1 className="text-4xl font-bold tracking-tight pt-12 md:pt-0">
-            {doc.title}
+            Pattern Lock
           </h1>
-          <p className="text-muted-foreground">{doc.description}</p>
+          <p className="text-muted-foreground">
+            A customizable UI component for drawing patterns by connecting dots
+            for authentication or creative input.
+          </p>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 w-full">
@@ -116,12 +120,12 @@ export default function Home() {
             </Card>
           </div>
           {/* Documentation Section */}
-          <div className="lg:col-span-2 h-[80vh] custom-scrollbar overflow-y-auto">
+          <div className="lg:col-span-2 h-[80vh] custom-scrollbar overflow-y-auto pr-2">
             <div className="flex flex-col gap-2">
-              <h1 className="text-4xl font-bold tracking-tight pt-12 md:pt-0">
+              <h1 className="text-3xl font-bold tracking-tight pt-12 md:pt-0">
                 {doc.title}
               </h1>
-              <p className="text-muted-foreground">{doc.description}</p>
+              <p>{doc.description}</p>
             </div>
             <div className="space-y-8 text-base leading-relaxed">
               <MDXContent components={components} />
