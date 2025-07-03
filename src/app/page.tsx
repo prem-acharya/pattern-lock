@@ -2,62 +2,31 @@
 
 import { allDocuments } from "contentlayer/generated";
 import * as React from "react";
-import { PatternLock } from "@/components/pattern-lock";
-import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardTitle,
-} from "@/components/ui/card";
-import { RotateCcw } from "lucide-react";
 import { ModeToggle } from "@/components/theme-toggle";
 import Link from "next/link";
-import { useMDXComponent } from "next-contentlayer/hooks";
+import PatternLockDemo from "@/components/pattern-lock-demo";
 import { CodeBlock } from "@/components/code-block";
-import { mdxComponents } from "@/components/mdx-components";
 
 export default function Home() {
-  const [currentPattern, setCurrentPattern] = React.useState<number[]>([]);
-
-  const handlePatternChange = (pattern: number[]) => {
-    setCurrentPattern(pattern);
-  };
-
-  const handlePatternComplete = (pattern: number[]) => {
-    // Remove all status message logic
-  };
-
-  const resetPattern = () => {
-    setCurrentPattern([]);
-  };
-
-  const formatPattern = (pattern: number[]) => {
-    if (pattern.length === 0) return "";
-    return pattern.map((dot) => dot + 1).join("");
-  };
-
   // Use the first snippet for documentation
   const doc = allDocuments[0];
-  const MDXContent = useMDXComponent(doc.body.code);
-
-  // Custom MDX components mapping
-  const components = {
-    ...mdxComponents,
-    code: (props: any) => {
-      const { className = "", children = "" } = props;
-      const match = className.match(/language-(\w+)/);
-      return (
-        <CodeBlock
-          language={match ? match[1] : ""}
-          filename={""}
-          code={
-            typeof children === "string" ? children.trim() : String(children)
-          }
-        />
-      );
-    },
-  };
+  
+  // TODO: Re-enable MDX content when compatibility issues are resolved
+  // const createFallbackComponent = (message: string) => {
+  //   const FallbackComponent = () => <div>{message}</div>;
+  //   FallbackComponent.displayName = `FallbackComponent_${message.replace(/\s/g, "")}`;
+  //   return FallbackComponent;
+  // };
+  // 
+  // const MDXContent = React.useMemo(() => {
+  //   if (!doc?.body?.code) return createFallbackComponent("No content available");
+  //   try {
+  //     return getMDXComponent(doc.body.code);
+  //   } catch (error) {
+  //     console.error("Error loading MDX component:", error);
+  //     return createFallbackComponent("Error loading content");
+  //   }
+  // }, [doc]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background to-muted/20 p-4">
@@ -86,49 +55,117 @@ export default function Home() {
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 w-full">
           {/* Pattern Lock Component */}
-          <div className="lg:col-span-1">
-            <Card className="flex flex-col items-center p-4 sticky top-8">
-              <CardTitle>Pattern Lock</CardTitle>
-              <CardDescription>
-                Draw a pattern by connecting the dots
-              </CardDescription>
-              <CardContent className="space-y-4">
-                <PatternLock
-                  pattern={currentPattern}
-                  onPatternChange={handlePatternChange}
-                  onPatternComplete={handlePatternComplete}
-                  dotSize={24}
-                  lineWidth={4}
-                />
-                {/* Control Buttons */}
-                <div className="flex flex-wrap gap-2 justify-center">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={resetPattern}
-                    className="flex items-center gap-1"
-                  >
-                    <RotateCcw className="h-4 w-4" />
-                    Reset
-                  </Button>
-                </div>
-                {/* Pattern Output */}
-                <div className="text-center text-lg font-mono mt-2">
-                  Output: {`"${formatPattern(currentPattern)}"`}
-                </div>
-              </CardContent>
-            </Card>
-          </div>
+          <PatternLockDemo />
           {/* Documentation Section */}
           <div className="lg:col-span-2 h-[80vh] custom-scrollbar overflow-y-auto pr-2">
             <div className="flex flex-col gap-2">
               <h1 className="text-3xl font-bold tracking-tight pt-12 md:pt-0">
-                {doc.title}
+                {doc?.title || "Pattern Lock Documentation"}
               </h1>
-              <p>{doc.description}</p>
+              <p>{doc?.description || "Learn how to use the Pattern Lock component."}</p>
             </div>
             <div className="space-y-8 text-base leading-relaxed">
-              <MDXContent components={components} />
+              {/* Features Section */}
+              <div>
+                <h3 className="text-xl font-semibold mb-4">Features</h3>
+                <ul className="list-disc list-inside space-y-2 text-muted-foreground">
+                  <li>Click and drag to connect the dots and create a pattern.</li>
+                  <li>Press the <strong>Reset</strong> button to clear the pattern.</li>
+                  <li>The output below the lock shows the pattern as a sequence of numbers.</li>
+                  <li>Fully responsive and works in both light and dark themes.</li>
+                </ul>
+              </div>
+              
+              {/* Usage Section */}
+              <div>
+                <h3 className="text-xl font-semibold mb-4">Usage</h3>
+                <CodeBlock
+                  language="tsx"
+                  filename=""
+                  code={`import { PatternLock } from "@/components/pattern-lock";
+
+<PatternLock
+  pattern={pattern}
+  onPatternChange={setPattern}
+  dotSize={24}
+  lineWidth={4}
+/>`}
+                />
+              </div>
+              
+              {/* Props Section */}
+              <div>
+                <h3 className="text-xl font-semibold mb-4">Props</h3>
+                <div className="overflow-x-auto">
+                  <table className="w-full border-collapse border border-border">
+                    <thead>
+                      <tr className="bg-muted/50">
+                        <th className="border border-border p-2 text-left">Prop</th>
+                        <th className="border border-border p-2 text-left">Type</th>
+                        <th className="border border-border p-2 text-left">Default</th>
+                        <th className="border border-border p-2 text-left">Description</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr>
+                        <td className="border border-border p-2 font-mono text-sm">pattern</td>
+                        <td className="border border-border p-2 font-mono text-sm">number[]</td>
+                        <td className="border border-border p-2 font-mono text-sm">[]</td>
+                        <td className="border border-border p-2">Current pattern as array of dot indices</td>
+                      </tr>
+                      <tr>
+                        <td className="border border-border p-2 font-mono text-sm">onPatternChange</td>
+                        <td className="border border-border p-2 font-mono text-sm">(pattern: number[]) =&gt; void</td>
+                        <td className="border border-border p-2">-</td>
+                        <td className="border border-border p-2">Callback when pattern changes</td>
+                      </tr>
+                      <tr>
+                        <td className="border border-border p-2 font-mono text-sm">onPatternComplete</td>
+                        <td className="border border-border p-2 font-mono text-sm">(pattern: number[]) =&gt; void</td>
+                        <td className="border border-border p-2">-</td>
+                        <td className="border border-border p-2">Callback when drawing is complete</td>
+                      </tr>
+                      <tr>
+                        <td className="border border-border p-2 font-mono text-sm">dotSize</td>
+                        <td className="border border-border p-2 font-mono text-sm">number</td>
+                        <td className="border border-border p-2 font-mono text-sm">20</td>
+                        <td className="border border-border p-2">Size of the dots in pixels</td>
+                      </tr>
+                      <tr>
+                        <td className="border border-border p-2 font-mono text-sm">lineWidth</td>
+                        <td className="border border-border p-2 font-mono text-sm">number</td>
+                        <td className="border border-border p-2 font-mono text-sm">4</td>
+                        <td className="border border-border p-2">Width of the connecting lines</td>
+                      </tr>
+                      <tr>
+                        <td className="border border-border p-2 font-mono text-sm">className</td>
+                        <td className="border border-border p-2 font-mono text-sm">string</td>
+                        <td className="border border-border p-2">-</td>
+                        <td className="border border-border p-2">Additional CSS classes</td>
+                      </tr>
+                      <tr>
+                        <td className="border border-border p-2 font-mono text-sm">disabled</td>
+                        <td className="border border-border p-2 font-mono text-sm">boolean</td>
+                        <td className="border border-border p-2 font-mono text-sm">false</td>
+                        <td className="border border-border p-2">Whether the component is disabled</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+              
+              {/* Installation Section */}
+              <div>
+                <h3 className="text-xl font-semibold mb-4">Installation</h3>
+                <CodeBlock
+                  language="bash"
+                  filename=""
+                  code="npm install next-themes lucide-react"
+                />
+                <p className="mt-4 text-muted-foreground">
+                  Copy the component code from <code className="bg-muted px-1 py-0.5 rounded text-sm">src/components/pattern-lock.tsx</code> and ensure you have the required dependencies installed.
+                </p>
+              </div>
             </div>
           </div>
         </div>

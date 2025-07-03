@@ -31,8 +31,7 @@ function isPointInDot(
 
 function getPointFromEvent(
   event: React.MouseEvent | React.TouchEvent,
-  canvasRef: React.RefObject<HTMLCanvasElement | null>,
-  size: number
+  canvasRef: React.RefObject<HTMLCanvasElement | null>
 ): Point {
   const canvas = canvasRef.current;
   if (!canvas) return { x: 0, y: 0 };
@@ -77,18 +76,25 @@ export function PatternLock({
   const [size, setSize] = React.useState(300);
   const { resolvedTheme } = useTheme();
   const [isHoveringDot, setIsHoveringDot] = React.useState(false);
+  const [mounted, setMounted] = React.useState(false);
+  
+  // Use a safe theme value that defaults to light
+  const safeTheme = mounted ? resolvedTheme : "light";
 
   React.useEffect(() => {
+    setMounted(true);
     function updateSize() {
-      if (window.innerWidth < 640) {
+      if (typeof window !== "undefined" && window.innerWidth < 640) {
         setSize(250);
       } else {
         setSize(300);
       }
     }
     updateSize();
-    window.addEventListener("resize", updateSize);
-    return () => window.removeEventListener("resize", updateSize);
+    if (typeof window !== "undefined") {
+      window.addEventListener("resize", updateSize);
+      return () => window.removeEventListener("resize", updateSize);
+    }
   }, []);
 
   const dots = React.useMemo(() => {
@@ -106,6 +112,7 @@ export function PatternLock({
   }, [size]);
 
   const drawCanvas = React.useCallback(() => {
+    if (!mounted) return;
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext("2d");
@@ -113,7 +120,7 @@ export function PatternLock({
     ctx.clearRect(0, 0, size, size);
     if (pattern.length > 1) {
       let lineColor = "#000";
-      if (resolvedTheme === "dark") {
+      if (safeTheme === "dark") {
         lineColor = "#fff";
       }
       ctx.strokeStyle = lineColor;
@@ -137,7 +144,7 @@ export function PatternLock({
       ctx.beginPath();
       ctx.arc(dot.x, dot.y, dotSize / 2, 0, 2 * Math.PI);
       let dotColor = "#000";
-      if (resolvedTheme === "dark") {
+      if (safeTheme === "dark") {
         dotColor = "#fff";
       }
       if (isActive) {
@@ -155,6 +162,7 @@ export function PatternLock({
       }
     });
   }, [
+    mounted,
     pattern,
     isDrawing,
     currentPoint,
@@ -162,12 +170,24 @@ export function PatternLock({
     size,
     dotSize,
     lineWidth,
-    resolvedTheme,
+    safeTheme,
   ]);
+
+  const handleMove = (event: React.MouseEvent | React.TouchEvent) => {
+    if (!isDrawing || disabled) return;
+    event.preventDefault();
+    const point = getPointFromEvent(event, canvasRef);
+    setCurrentPoint(point);
+    const dotIndex = dots.findIndex((dot) => isPointInDot(point, dot, dotSize));
+    if (dotIndex !== -1 && !pattern.includes(dotIndex)) {
+      const newPattern = [...pattern, dotIndex];
+      onPatternChange?.(newPattern);
+    }
+  };
 
   const handleMouseMove = (event: React.MouseEvent | React.TouchEvent) => {
     if (!isDrawing && !disabled && "clientX" in event) {
-      const point = getPointFromEvent(event, canvasRef, size);
+      const point = getPointFromEvent(event, canvasRef);
       const overDot = dots.some((dot) => isPointInDot(point, dot, dotSize));
       setIsHoveringDot(overDot);
     }
@@ -176,38 +196,17 @@ export function PatternLock({
 
   React.useEffect(() => {
     drawCanvas();
-  }, [
-    pattern,
-    isDrawing,
-    currentPoint,
-    dots,
-    size,
-    dotSize,
-    lineWidth,
-    resolvedTheme,
-  ]);
+  }, [drawCanvas]);
 
   const handleStart = (event: React.MouseEvent | React.TouchEvent) => {
     if (disabled) return;
     event.preventDefault();
-    const point = getPointFromEvent(event, canvasRef, size);
+    const point = getPointFromEvent(event, canvasRef);
     setIsDrawing(true);
     setCurrentPoint(point);
     const dotIndex = dots.findIndex((dot) => isPointInDot(point, dot, dotSize));
     if (dotIndex !== -1) {
       const newPattern = [dotIndex];
-      onPatternChange?.(newPattern);
-    }
-  };
-
-  const handleMove = (event: React.MouseEvent | React.TouchEvent) => {
-    if (!isDrawing || disabled) return;
-    event.preventDefault();
-    const point = getPointFromEvent(event, canvasRef, size);
-    setCurrentPoint(point);
-    const dotIndex = dots.findIndex((dot) => isPointInDot(point, dot, dotSize));
-    if (dotIndex !== -1 && !pattern.includes(dotIndex)) {
-      const newPattern = [...pattern, dotIndex];
       onPatternChange?.(newPattern);
     }
   };
@@ -221,6 +220,23 @@ export function PatternLock({
       onPatternComplete?.(pattern);
     }
   };
+
+  // Don't render until mounted (prevents SSR issues)
+  if (!mounted) {
+    return (
+      <div
+        className={cn("relative inline-block", className)}
+        style={{ width: size, height: size }}
+      >
+        <div
+          className="border border-border rounded-lg bg-background flex items-center justify-center"
+          style={{ width: size, height: size }}
+        >
+          <span className="text-muted-foreground">Loading...</span>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div

@@ -1,8 +1,8 @@
 import { defineDocumentType, makeSource } from "contentlayer/source-files";
 
-export const Snippet = defineDocumentType(() => ({
+export const Doc = defineDocumentType(() => ({
   name: "Doc",
-  filePathPattern: `components/**/*.mdx`,
+  filePathPattern: `**/*.mdx`,
   contentType: "mdx",
   fields: {
     title: {
@@ -19,12 +19,15 @@ export const Snippet = defineDocumentType(() => ({
   computedFields: {
     slug: {
       type: "string",
-      resolve: (_) => _._raw.sourceFileName.replace(/\.[^.$]+$/, ""),
+      resolve: (doc) => doc._raw.flattenedPath,
     },
   },
 }));
 
 export default makeSource({
   contentDirPath: "src/doc",
-  documentTypes: [Snippet],
+  documentTypes: [Doc],
+  onSuccess: async (importData) => {
+    // Optional: Success callback
+  },
 });
