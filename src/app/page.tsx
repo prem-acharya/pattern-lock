@@ -204,7 +204,7 @@ export default function Home() {
           .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")
           .replace(
             /`(.*?)`/g,
-            '<code class="bg-muted px-1 py-0.5 rounded text-sm">$1</code>'
+            "<code class='bg-muted px-1 py-0.5 rounded text-sm'>$1</code>"
           );
         const P = mdxComponents.p;
         elements.push(
