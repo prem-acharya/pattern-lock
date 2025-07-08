@@ -1,32 +1,225 @@
 "use client";
 
-import { allDocuments } from "contentlayer/generated";
+import { allDocs } from "contentlayer/generated";
 import * as React from "react";
 import { ModeToggle } from "@/components/theme-toggle";
 import Link from "next/link";
 import PatternLockDemo from "@/components/pattern-lock-demo";
+import { mdxComponents } from "@/components/mdx-components";
 import { CodeBlock } from "@/components/code-block";
 
 export default function Home() {
-  // Use the first snippet for documentation
-  const doc = allDocuments[0];
-  
-  // TODO: Re-enable MDX content when compatibility issues are resolved
-  // const createFallbackComponent = (message: string) => {
-  //   const FallbackComponent = () => <div>{message}</div>;
-  //   FallbackComponent.displayName = `FallbackComponent_${message.replace(/\s/g, "")}`;
-  //   return FallbackComponent;
-  // };
-  // 
-  // const MDXContent = React.useMemo(() => {
-  //   if (!doc?.body?.code) return createFallbackComponent("No content available");
-  //   try {
-  //     return getMDXComponent(doc.body.code);
-  //   } catch (error) {
-  //     console.error("Error loading MDX component:", error);
-  //     return createFallbackComponent("Error loading content");
-  //   }
-  // }, [doc]);
+  const doc = allDocs[0];
+
+  const renderDocumentation = () => {
+    if (!doc?.body?.raw) return <div>No documentation available</div>;
+
+    const content = doc.body.raw;
+    const lines = content.split("\n");
+    const elements = [];
+    let currentSection: React.ReactNode[] = [];
+    let inCodeBlock = false;
+    let codeLanguage = "";
+    let codeContent: string[] = [];
+    let inTable = false;
+    let tableHeaders: string[] = [];
+    let tableRows: string[][] = [];
+
+    lines.forEach((line, index) => {
+      if (line.startsWith("```")) {
+        if (inCodeBlock) {
+          // Parse filename from codeLanguage if it exists
+          const parseCodeHeader = (header: string) => {
+            const parts = header.split(' ');
+            const language = parts[0] || 'text';
+            const filenamePart = parts.find(part => part.startsWith('filename='));
+            let filename = '';
+            
+            if (filenamePart) {
+              filename = filenamePart.replace('filename=', '').replace(/["']/g, '');
+            } else {
+              // Fallback to language-based filename
+              switch (language.toLowerCase()) {
+                case 'tsx':
+                case 'jsx':
+                  filename = 'component.tsx';
+                  break;
+                case 'ts':
+                  filename = 'types.ts';
+                  break;
+                case 'js':
+                  filename = 'script.js';
+                  break;
+                case 'bash':
+                case 'sh':
+                  filename = 'terminal';
+                  break;
+                case 'json':
+                  filename = 'config.json';
+                  break;
+                case 'css':
+                  filename = 'styles.css';
+                  break;
+                default:
+                  filename = 'code';
+              }
+            }
+            
+            return { language, filename };
+          };
+          
+          const { language, filename } = parseCodeHeader(codeLanguage);
+          
+          elements.push(
+            <CodeBlock
+              key={`code-${index}`}
+              language={language}
+              filename={filename}
+              code={codeContent.join("\n")}
+            />
+          );
+          codeContent = [];
+          inCodeBlock = false;
+        } else {
+          codeLanguage = line.replace("```", "").trim();
+          inCodeBlock = true;
+        }
+        return;
+      }
+
+      if (inCodeBlock) {
+        codeContent.push(line);
+        return;
+      }
+
+      // Handle headers using MDX components
+      if (line.startsWith("### ")) {
+        const H3 = mdxComponents.h3;
+        elements.push(<H3 key={`h3-${index}`}>{line.replace("### ", "")}</H3>);
+      } else if (line.startsWith("## ")) {
+        const H2 = mdxComponents.h2;
+        elements.push(<H2 key={`h2-${index}`}>{line.replace("## ", "")}</H2>);
+      } else if (line.startsWith("# ")) {
+        const H1 = mdxComponents.h1;
+        elements.push(<H1 key={`h1-${index}`}>{line.replace("# ", "")}</H1>);
+      } else if (line.startsWith("- ")) {
+        // Handle list items
+        const listText = line
+          .replace("- ", "")
+          .replace(/\*\*(.*?)\*\*/g, (match, p1) => p1);
+        const Li = mdxComponents.li;
+        currentSection.push(
+          <Li key={`li-${index}`}>
+            <span
+              dangerouslySetInnerHTML={{
+                __html: listText.replace(
+                  /\*\*(.*?)\*\*/g,
+                  "<strong>$1</strong>"
+                ),
+              }}
+            />
+          </Li>
+        );
+      } else if (line.startsWith("| ")) {
+        if (!inTable) {
+          inTable = true;
+          tableHeaders = line
+            .split("|")
+            .slice(1, -1)
+            .map((cell) => cell.trim());
+        } else if (line.includes("---")) {
+          return;
+        } else {
+          const rowData = line
+            .split("|")
+            .slice(1, -1)
+            .map((cell) => cell.trim());
+          tableRows.push(rowData);
+        }
+      } else if (line.trim() === "") {
+        if (currentSection.length > 0) {
+          const Ul = mdxComponents.ul;
+          elements.push(<Ul key={`ul-${index}`}>{currentSection}</Ul>);
+          currentSection = [];
+        }
+
+        if (inTable && tableRows.length > 0) {
+          elements.push(
+            <div
+              key={`table-${index}`}
+              className="my-6 overflow-x-auto border border-border rounded-lg"
+            >
+              <table className="w-full border-collapse">
+                <thead>
+                  <tr className="bg-muted/50">
+                    {tableHeaders.map((header, i) => (
+                      <th
+                        key={i}
+                        className="border border-border p-3 text-left font-semibold"
+                      >
+                        {header}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {tableRows.map((row, rowIndex) => (
+                    <tr key={rowIndex} className="hover:bg-muted/30">
+                      {row.map((cell, cellIndex) => (
+                        <td
+                          key={cellIndex}
+                          className={`border border-border p-3 ${
+                            cellIndex === 0 ||
+                            cellIndex === 1 ||
+                            cellIndex === 2
+                              ? "font-mono text-sm"
+                              : ""
+                          }`}
+                          dangerouslySetInnerHTML={{
+                            __html: cell
+                              .replace(
+                                /`([^`]+)`/g,
+                                '<code class="bg-muted px-1 py-0.5 rounded text-xs">$1</code>'
+                              )
+                              .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>"),
+                          }}
+                        />
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          );
+          inTable = false;
+          tableHeaders = [];
+          tableRows = [];
+        }
+      } else if (line.trim() !== "") {
+        const paragraphText = line
+          .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")
+          .replace(
+            /`(.*?)`/g,
+            '<code class="bg-muted px-1 py-0.5 rounded text-sm">$1</code>'
+          );
+        const P = mdxComponents.p;
+        elements.push(
+          <P
+            key={`p-${index}`}
+            dangerouslySetInnerHTML={{ __html: paragraphText }}
+          />
+        );
+      }
+    });
+
+    // Handle remaining list items
+    if (currentSection.length > 0) {
+      const Ul = mdxComponents.ul;
+      elements.push(<Ul key="final-ul">{currentSection}</Ul>);
+    }
+
+    return <div className="space-y-4">{elements}</div>;
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background to-muted/20 p-4">
@@ -62,110 +255,13 @@ export default function Home() {
               <h1 className="text-3xl font-bold tracking-tight pt-12 md:pt-0">
                 {doc?.title || "Pattern Lock Documentation"}
               </h1>
-              <p>{doc?.description || "Learn how to use the Pattern Lock component."}</p>
+              <p>
+                {doc?.description ||
+                  "Learn how to use the Pattern Lock component."}
+              </p>
             </div>
             <div className="space-y-8 text-base leading-relaxed">
-              {/* Features Section */}
-              <div>
-                <h3 className="text-xl font-semibold mb-4">Features</h3>
-                <ul className="list-disc list-inside space-y-2 text-muted-foreground">
-                  <li>Click and drag to connect the dots and create a pattern.</li>
-                  <li>Press the <strong>Reset</strong> button to clear the pattern.</li>
-                  <li>The output below the lock shows the pattern as a sequence of numbers.</li>
-                  <li>Fully responsive and works in both light and dark themes.</li>
-                </ul>
-              </div>
-              
-              {/* Usage Section */}
-              <div>
-                <h3 className="text-xl font-semibold mb-4">Usage</h3>
-                <CodeBlock
-                  language="tsx"
-                  filename=""
-                  code={`import { PatternLock } from "@/components/pattern-lock";
-
-<PatternLock
-  pattern={pattern}
-  onPatternChange={setPattern}
-  dotSize={24}
-  lineWidth={4}
-/>`}
-                />
-              </div>
-              
-              {/* Props Section */}
-              <div>
-                <h3 className="text-xl font-semibold mb-4">Props</h3>
-                <div className="overflow-x-auto">
-                  <table className="w-full border-collapse border border-border">
-                    <thead>
-                      <tr className="bg-muted/50">
-                        <th className="border border-border p-2 text-left">Prop</th>
-                        <th className="border border-border p-2 text-left">Type</th>
-                        <th className="border border-border p-2 text-left">Default</th>
-                        <th className="border border-border p-2 text-left">Description</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      <tr>
-                        <td className="border border-border p-2 font-mono text-sm">pattern</td>
-                        <td className="border border-border p-2 font-mono text-sm">number[]</td>
-                        <td className="border border-border p-2 font-mono text-sm">[]</td>
-                        <td className="border border-border p-2">Current pattern as array of dot indices</td>
-                      </tr>
-                      <tr>
-                        <td className="border border-border p-2 font-mono text-sm">onPatternChange</td>
-                        <td className="border border-border p-2 font-mono text-sm">(pattern: number[]) =&gt; void</td>
-                        <td className="border border-border p-2">-</td>
-                        <td className="border border-border p-2">Callback when pattern changes</td>
-                      </tr>
-                      <tr>
-                        <td className="border border-border p-2 font-mono text-sm">onPatternComplete</td>
-                        <td className="border border-border p-2 font-mono text-sm">(pattern: number[]) =&gt; void</td>
-                        <td className="border border-border p-2">-</td>
-                        <td className="border border-border p-2">Callback when drawing is complete</td>
-                      </tr>
-                      <tr>
-                        <td className="border border-border p-2 font-mono text-sm">dotSize</td>
-                        <td className="border border-border p-2 font-mono text-sm">number</td>
-                        <td className="border border-border p-2 font-mono text-sm">20</td>
-                        <td className="border border-border p-2">Size of the dots in pixels</td>
-                      </tr>
-                      <tr>
-                        <td className="border border-border p-2 font-mono text-sm">lineWidth</td>
-                        <td className="border border-border p-2 font-mono text-sm">number</td>
-                        <td className="border border-border p-2 font-mono text-sm">4</td>
-                        <td className="border border-border p-2">Width of the connecting lines</td>
-                      </tr>
-                      <tr>
-                        <td className="border border-border p-2 font-mono text-sm">className</td>
-                        <td className="border border-border p-2 font-mono text-sm">string</td>
-                        <td className="border border-border p-2">-</td>
-                        <td className="border border-border p-2">Additional CSS classes</td>
-                      </tr>
-                      <tr>
-                        <td className="border border-border p-2 font-mono text-sm">disabled</td>
-                        <td className="border border-border p-2 font-mono text-sm">boolean</td>
-                        <td className="border border-border p-2 font-mono text-sm">false</td>
-                        <td className="border border-border p-2">Whether the component is disabled</td>
-                      </tr>
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-              
-              {/* Installation Section */}
-              <div>
-                <h3 className="text-xl font-semibold mb-4">Installation</h3>
-                <CodeBlock
-                  language="bash"
-                  filename=""
-                  code="npm install next-themes lucide-react"
-                />
-                <p className="mt-4 text-muted-foreground">
-                  Copy the component code from <code className="bg-muted px-1 py-0.5 rounded text-sm">src/components/pattern-lock.tsx</code> and ensure you have the required dependencies installed.
-                </p>
-              </div>
+              {renderDocumentation()}
             </div>
           </div>
         </div>

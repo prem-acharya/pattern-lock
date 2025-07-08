@@ -77,8 +77,7 @@ export function PatternLock({
   const { resolvedTheme } = useTheme();
   const [isHoveringDot, setIsHoveringDot] = React.useState(false);
   const [mounted, setMounted] = React.useState(false);
-  
-  // Use a safe theme value that defaults to light
+
   const safeTheme = mounted ? resolvedTheme : "light";
 
   React.useEffect(() => {
@@ -221,7 +220,6 @@ export function PatternLock({
     }
   };
 
-  // Don't render until mounted (prevents SSR issues)
   if (!mounted) {
     return (
       <div

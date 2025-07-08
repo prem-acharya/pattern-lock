@@ -29,12 +29,12 @@ export const CodeBlock = ({
   filename,
   code,
   highlightLines = [],
-  tabs = [],
+  tabs,
 }: CodeBlockProps) => {
   const [copied, setCopied] = React.useState(false);
   const [activeTab, setActiveTab] = React.useState(0);
 
-  const tabsExist = tabs.length > 0;
+  const tabsExist = tabs && tabs.length > 0;
 
   const copyToClipboard = async () => {
     const textToCopy = tabsExist ? tabs[activeTab].code : code;
@@ -73,9 +73,9 @@ export const CodeBlock = ({
             ))}
           </div>
         )}
-        {!tabsExist && filename && (
+        {!tabsExist && (
           <div className="flex justify-between items-center py-2">
-            <div className="text-xs text-zinc-400">{filename}</div>
+            <div className="text-xs text-zinc-400">{filename || 'Code'}</div>
             <button
               onClick={copyToClipboard}
               className="flex items-center gap-1 text-xs text-zinc-400 hover:text-zinc-200 transition-colors font-sans"
