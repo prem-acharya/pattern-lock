@@ -30,46 +30,50 @@ export default function Home() {
         if (inCodeBlock) {
           // Parse filename from codeLanguage if it exists
           const parseCodeHeader = (header: string) => {
-            const parts = header.split(' ');
-            const language = parts[0] || 'text';
-            const filenamePart = parts.find(part => part.startsWith('filename='));
-            let filename = '';
-            
+            const parts = header.split(" ");
+            const language = parts[0] || "text";
+            const filenamePart = parts.find((part) =>
+              part.startsWith("filename=")
+            );
+            let filename = "";
+
             if (filenamePart) {
-              filename = filenamePart.replace('filename=', '').replace(/["']/g, '');
+              filename = filenamePart
+                .replace("filename=", "")
+                .replace(/["']/g, "");
             } else {
               // Fallback to language-based filename
               switch (language.toLowerCase()) {
-                case 'tsx':
-                case 'jsx':
-                  filename = 'component.tsx';
+                case "tsx":
+                case "jsx":
+                  filename = "component.tsx";
                   break;
-                case 'ts':
-                  filename = 'types.ts';
+                case "ts":
+                  filename = "types.ts";
                   break;
-                case 'js':
-                  filename = 'script.js';
+                case "js":
+                  filename = "script.js";
                   break;
-                case 'bash':
-                case 'sh':
-                  filename = 'terminal';
+                case "bash":
+                case "sh":
+                  filename = "terminal";
                   break;
-                case 'json':
-                  filename = 'config.json';
+                case "json":
+                  filename = "config.json";
                   break;
-                case 'css':
-                  filename = 'styles.css';
+                case "css":
+                  filename = "styles.css";
                   break;
                 default:
-                  filename = 'code';
+                  filename = "code";
               }
             }
-            
+
             return { language, filename };
           };
-          
+
           const { language, filename } = parseCodeHeader(codeLanguage);
-          
+
           elements.push(
             <CodeBlock
               key={`code-${index}`}
